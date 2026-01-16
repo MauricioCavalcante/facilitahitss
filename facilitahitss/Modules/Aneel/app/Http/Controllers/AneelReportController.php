@@ -495,100 +495,77 @@ class AneelReportController extends Controller
 
         try {
             $report = AneelReport::findOrFail($reportId);
-
+            $allMasterIndicators = AneelIndicator::all()->keyBy('id');
             $reportIndicators = AneelReportIndicator::where('report_id', $reportId)
-                ->with('indicator')
-                ->get()
-                ->keyBy('indicator_id');
+            ->get()
+            ->keyBy('indicator_id');
 
             foreach ($request->input('inputs', []) as $indicatorId => $inputs) {
-                if (!isset($reportIndicators[$indicatorId])) continue;
 
-                $reportIndicator = $reportIndicators[$indicatorId];
+            if (!isset($allMasterIndicators[$indicatorId])) continue;
 
-                $dados = [];
-                $todosPreenchidos = true;
+            $indicatorMaster = $allMasterIndicators[$indicatorId];
+            $reportIndicator = $reportIndicators->get($indicatorId);
 
-                foreach ($inputs as $key => $value) {
-                    if ($value === '' || $value === null) {
-                        $dados[$key] = null;
-                        $todosPreenchidos = false;
-                    } else {
-                        $dados[$key] = is_numeric($value) ? floatval($value) : null;
-                    }
+            $dados = [];
+            $todosPreenchidos = true;
+
+            foreach ($inputs as $key => $value) {
+                if ($value === '' || $value === null) {
+                    $dados[$key] = null;
+                    $todosPreenchidos = false;
+                } else {
+                    $dados[$key] = is_numeric($value) ? floatval($value) : null;
                 }
+            }
 
-                $calcResult = null;
-                $status = 'Preencha todos os campos!';
+            $calcResult = null;
+            $status = 'Preencha todos os campos!';
 
-                if ($todosPreenchidos) {
-                    $calcResult = IndicatorCalculatorService::calculate($indicatorId, $dados);
-
-                    $serviceLevel = $reportIndicator->indicator->service_level;
-                    preg_match('/(<=|>=|<|>|==|!=|=)?\s*([\d.,]+)%?/', $serviceLevel, $matches);
-
-                    if ($matches && count($matches) >= 3) {
-                        [$all, $operator, $targetValue] = $matches;
-                        $targetValue = floatval(str_replace(',', '.', $targetValue));
-
-                        if (!$operator || $operator === '=') {
-                            $operator = '==';
-                        }
-
-                        switch ($operator) {
-                            case '<=':
-                                $atingiu = $calcResult <= $targetValue;
-                                break;
-                            case '>=':
-                                $atingiu = $calcResult >= $targetValue;
-                                break;
-                            case '<':
-                                $atingiu = $calcResult < $targetValue;
-                                break;
-                            case '>':
-                                $atingiu = $calcResult > $targetValue;
-                                break;
-                            case '==':
-                                $atingiu = $calcResult == $targetValue;
-                                break;
-                            case '!=':
-                                $atingiu = $calcResult != $targetValue;
-                                break;
-                            default:
-                                $atingiu = false;
-                        }
-
-                        $status = $atingiu ? 'Atingiu' : 'Não Atingiu';
-                    }
+            if ($todosPreenchidos) {
+                $calcResult = IndicatorCalculatorService::calculate($indicatorId, $dados);
+                
+                if (strcasecmp(trim($indicatorMaster->service_level), 'Informativo') === 0) {
+                    $status = 'Calculado';
+                } else {
+                    $status = AneelReportIndicator::checkIndicatorStatus($calcResult, $indicatorMaster->service_level);
                 }
+            }
 
-                // Remoção de anexo, se solicitado
-                if ($request->has('remove_attachments') && in_array($indicatorId, $request->input('remove_attachments', []))) {
-                    $reportIndicator->name_attachment = null;
-                    $reportIndicator->attachment = null;
-                    $reportIndicator->mime = null;
-                }
+            $name_attachment = $reportIndicator->name_attachment ?? null;
+            $attachment = $reportIndicator->attachment ?? null;
+            $mime = $reportIndicator->mime ?? null;
 
-                // Substituição de anexo
-                if ($request->hasFile("files.$indicatorId")) {
-                    $file = $request->file("files.$indicatorId");
-                    $reportIndicator->name_attachment = $file->getClientOriginalName();
-                    $reportIndicator->attachment = file_get_contents($file->getRealPath());
-                    $reportIndicator->mime = $file->getMimeType();
-                }
+            if ($request->has('remove_attachments') && in_array($indicatorId, $request->input('remove_attachments', []))) {
+                $name_attachment = null;
+                $attachment = null;
+                $mime = null;
+            }
 
-                // Atualiza os dados no banco
-                $reportIndicator->update([
+            if ($request->hasFile("files.$indicatorId")) {
+                $file = $request->file("files.$indicatorId");
+                $name_attachment = $file->getClientOriginalName();
+                $attachment = file_get_contents($file->getRealPath());
+                $mime = $file->getMimeType();
+            }
+
+            AneelReportIndicator::updateOrCreate(
+                [
+                    'report_id' => $reportId,
+                    'indicator_id' => $indicatorId
+                ],
+                [
                     'inputs' => json_encode($dados, JSON_UNESCAPED_UNICODE),
                     'value' => $calcResult,
                     'status' => $status,
-                    'name_attachment' => $reportIndicator->name_attachment,
-                    'attachment' => $reportIndicator->attachment,
-                    'mime' => $reportIndicator->mime,
-                ]);
-            }
+                    'name_attachment' => $name_attachment,
+                    'attachment' => $attachment,
+                    'mime' => $mime,
+                ]
+            );
+        }
 
-            DB::commit();
+        DB::commit();
 
             return redirect()->route('aneel::reportsRTA.show', $reportId)
                 ->with('success', 'Indicadores atualizados com sucesso!');

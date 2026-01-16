@@ -153,23 +153,24 @@
                 <div class="card-body">
                     <div class="row">
                         @php
-                            $allIndicatorsMaster = \Modules\Aneel\Models\AneelIndicator::orderBy('id')->get();
-                            $existingIndicators = $reportIndicators->keyBy('indicator_id');
+                            $allMasterIndicators = \Modules\Aneel\Models\AneelIndicator::orderBy('id')->get();
+                            
+                            $savedData = $reportIndicators->keyBy('indicator_id');
                         @endphp
-                        @foreach ($allIndicatorsMaster as $indicator)
+                        @foreach ($allMasterIndicators as $indicator)
                             @php
-                                $reportIndicator = $existingIndicators->get($indicator->id);
+                                $reportIndicator = $savedData->get($indicator->id);
                                 
                                 $savedInputs = [];
                                 if ($reportIndicator) {
                                     $savedInputs = is_string($reportIndicator->inputs) 
                                         ? json_decode($reportIndicator->inputs, true) 
-                                        : $reportIndicator->inputs;
+                                        : ($reportIndicator->inputs ?? []);
                                 }
 
                                 $inputSchema = is_string($indicator->inputs) 
                                     ? json_decode($indicator->inputs, true) 
-                                    : $indicator->inputs;
+                                    : ($indicator->inputs ?? []);
 
                                 $requiresFile = in_array($indicator->id, [1, 3, 4, 7, 9, 10]);
                             @endphp
@@ -178,12 +179,12 @@
                                 <div class="card shadow-sm {{ !$reportIndicator ? 'border-warning' : '' }}">
                                     <div class="card-header {{ !$reportIndicator ? 'bg-warning text-dark' : 'bg-secondary text-white' }} d-flex justify-content-between align-items-center">
                                         <h6 class="mb-0">{{ $indicator->id }} - {{ $indicator->name }} ({{ $indicator->code }})</h6>
-                                        @if(!$reportIndicator) 
-                                            <span class="badge bg-light text-dark" title="Este indicador ainda não possui dados neste relatório">Novo</span> 
+                                        @if(!$reportIndicator)
+                                            <span class="badge bg-light text-dark">Novo</span>
                                         @endif
                                     </div>
                                     <div class="card-body">
-                                        <span class="text-muted small">{{ $indicator->description }}</span>
+                                        <span class="text-muted small d-block mb-2">{{ $indicator->description }}</span>
                                         
                                         @if (!empty($inputSchema))
                                             @foreach ($inputSchema as $key)
@@ -191,11 +192,11 @@
                                                     <label class="form-label">{{ strtoupper(str_replace('_', ' ', $key)) }}</label>
                                                     <input type="number" step="any" class="form-control"
                                                         name="inputs[{{ $indicator->id }}][{{ $key }}]"
-                                                        value="{{ old("inputs.$indicator->id.$key", $savedInputs[$key] ?? '') }}">
+                                                        value="{{ old("inputs.{$indicator->id}.{$key}", $savedInputs[$key] ?? '') }}">
                                                 </div>
                                             @endforeach
                                         @else
-                                            <p class="text-muted">Nenhum dado disponível.</p>
+                                            <p class="text-muted">Nenhum campo de entrada definido.</p>
                                         @endif
 
                                         @if ($requiresFile)
@@ -206,7 +207,7 @@
                                                             Anexo atual: <strong>{{ $reportIndicator->name_attachment }}</strong>
                                                         </div>
                                                     @endif
-                                                    <label for="file_{{ $indicator->id }}" class="form-label mt-2">Substituir/Anexar Arquivo:</label>
+                                                    <label for="file_{{ $indicator->id }}" class="form-label mt-2">Arquivo:</label>
                                                     <input type="file" class="form-control" name="files[{{ $indicator->id }}]" id="file_{{ $indicator->id }}">
                                                 </div>
                                             </div>
