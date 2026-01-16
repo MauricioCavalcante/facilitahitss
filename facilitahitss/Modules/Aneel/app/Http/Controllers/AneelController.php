@@ -86,7 +86,7 @@ class AneelController extends Controller
 
         $categories = [
             'Item 1: Central de Serviços' => ['IATAA', 'IET', 'ITA', 'ICIR', 'IAABC', 'ICABC'],
-            'Item 2: Atendimento ao Usuário de 1º e 2º Níveis' => ['IRSAP', 'IRSAFPM', 'ISU', 'IIAP', 'IIAFPM', 'IRIR'],
+            'Item 2: Atendimento ao Usuário de 1º e 2º Níveis' => ['IRSAP', 'IRSAFPM', 'ISU', 'IIAP', 'IIAFPM', 'IRIR', 'ATEND_N1', 'ATEND_N2'],
             'Item 3: Unidade de Controle e Conformidade de hardware' => ['IDSP', 'IDHW', 'IAG', 'IMSR', 'IPRM'],
             'Item 4: Unidade de Atividades Especiais' => ['IAEAP'],
         ];

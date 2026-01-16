@@ -28,6 +28,7 @@
                                 $data = $indicator->reports->firstWhere('report_id', $currentReport->id);
                                 $value = $data->value ?? null;
                                 $status = $data->status ?? null;
+                                $isInformativo = (strcasecmp(trim($indicator->service_level), 'Informativo') === 0);
                             @endphp
                             <tr>
                                 <td>{{ $indicator->id }}</td>
@@ -35,9 +36,17 @@
                                 <td>{{ $indicator->service_level ?? '—' }}</td>
                                 <td style="white-space: nowrap;">
                                     @if (!is_null($value))
-                                        <div class="d-flex justify-content-between">
-                                            <div>{{ number_format($value, 2) }}%</div>
-                                            <div>{!! $status === 'Atingiu' ? '✅' : '❌' !!}</div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                {{ number_format($value, $isInformativo ? 0 : 2) }}{{ $isInformativo ? '' : '%' }}
+                                            </div>
+                                            <div>
+                                                @if($isInformativo)
+                                                    📊
+                                                @else
+                                                    {!! $status === 'Atingiu' ? '✅' : '❌' !!}
+                                                @endif
+                                            </div>
                                         </div>
                                     @else
                                         —

@@ -276,21 +276,22 @@
                                         <p class="text-muted">N/A</p>
                                     @endif
                                 </div>
+                                @php
+                                    $isInformativo = in_array($indicator->indicator->id, [19, 20]);
+                                @endphp
                                 <p class="mt-2">Resultado:
-                                    <strong>{{ number_format((float) ($indicator->value ?? 0), 2, ',', '.') }}%</strong>
+                                    <strong>{{ number_format((float) ($indicator->value ?? 0), $isInformativo ? 0 : 2, ',', '.') }}{{ $isInformativo ? '' : '%' }}</strong>
                                 </p>
-                                @if ($indicator->status == 'Atingiu')
-                                    <span>Status: </span><span class="text-success"><strong>O resultado atingiu o nível de
-                                            serviço
-                                            esperado.</strong></span>
-                                @elseif($indicator->status == 'Não Atingiu')
-                                    <span>Status: </span><span class="text-danger"><strong>O resultado não atingiu o nível
-                                            de
-                                            serviço
-                                            esperado.</strong></span>
-                                @elseif($indicator->status == 'Preencha todos os campos!')
-                                    <span>Status: </span><span class="text-warning"><strong>Preencha todos os
-                                            campos!</strong></span>
+                                @if ($isInformativo)
+                                    <span>Status: </span><span class="text-primary"><strong>Informativo</strong></span>
+                                @else
+                                    @if ($indicator->status == 'Atingiu')
+                                        <span>Status: </span><span class="text-success"><strong>O resultado atingiu o nível de serviço esperado.</strong></span>
+                                    @elseif($indicator->status == 'Não Atingiu')
+                                        <span>Status: </span><span class="text-danger"><strong>O resultado não atingiu o nível de serviço esperado.</strong></span>
+                                    @elseif($indicator->status == 'Preencha todos os campos!')
+                                        <span>Status: </span><span class="text-warning"><strong>Preencha todos os campos!</strong></span>
+                                    @endif
                                 @endif
                                 <div class="mt-3 text-nowrap overflow-hidden">
                                     @if ($indicator->name_attachment)

@@ -3,6 +3,14 @@
 @php
     use Modules\Aneel\Models\AneelReportIndicator;
 
+    // Definição de comportamentos especiais
+    $isN1 = $indicator->code === 'ATEND_N1';
+    $isN2 = $indicator->code === 'ATEND_N2';
+    $isInformativo = strcasecmp(trim($indicator->service_level), 'Informativo') === 0;
+
+    // Se for o Nível 2, matamos a renderização aqui para não duplicar o gráfico da soma
+    if ($isN2) { return; }
+
     $seriesData = [];
 
     foreach ($lastSixMonths as $ym) {
@@ -13,85 +21,75 @@
         });
 
         if ($reportForMonth) {
+            // Valor do indicador atual (N1 ou qualquer outro)
             $reportIndicator = $indicator->reports->first(fn($ri) => $ri->report_id == $reportForMonth->id);
-            $value = $reportIndicator?->value ?? null;
+            $value = $reportIndicator?->value ?? 0;
 
-            if (!is_null($value)) {
-                $status = AneelReportIndicator::checkIndicatorStatus($value, $indicator->service_level);
-                $color = $status === 'Atingiu' ? '#28a745' : '#dc3545';
-
-                $seriesData[] = [
-                    'y' => round($value, 4),
-                    'status' => $status,
-                    'color' => $color,
-                ];
-            } else {
-                $seriesData[] = ['y' => null, 'status' => 'Sem dados', 'color' => null];
+            // 🔹 LÓGICA DE SOMA: Se for N1, busca o N2 do mesmo mês e soma
+            if ($isN1) {
+                $valueN2 = AneelReportIndicator::where('report_id', $reportForMonth->id)
+                    ->whereHas('indicator', fn($q) => $q->where('code', 'ATEND_N2'))
+                    ->value('value') ?? 0;
+                $value = (float)$value + (float)$valueN2;
             }
+
+            $status = $isInformativo ? 'Calculado' : AneelReportIndicator::checkIndicatorStatus($value, $indicator->service_level);
+            
+            // Define cor: azul para informativo, verde/vermelho para metas
+            $color = $isInformativo ? '#007bff' : ($status === 'Atingiu' ? '#28a745' : '#dc3545');
+
+            $seriesData[] = [
+                'y' => (float)$value,
+                'status' => $status,
+                'color' => $color,
+            ];
         } else {
             $seriesData[] = ['y' => null, 'status' => 'Sem dados', 'color' => null];
         }
     }
 
-$labels = $lastSixMonths
-    ->map(function ($ym) {
-        return \Carbon\Carbon::createFromFormat('Y-m-d', $ym . '-01')
-            ->locale('pt_BR')
-            ->translatedFormat('MY');
-    })
-    ->toArray();
+    $labels = $lastSixMonths->map(function ($ym) {
+        return \Carbon\Carbon::createFromFormat('Y-m', $ym)->locale('pt_BR')->translatedFormat('M/Y');
+    })->toArray();
 
+    // Ajuste de labels para o gráfico
+    $unit = $isInformativo ? '' : '%';
+    $yAxisTitle = $isInformativo ? 'Quantidade' : 'Nível de Serviço (%)';
+    $chartTitle = $isN1 ? 'Total Atendimentos (N1 + N2)' : "{$indicator->code} - {$indicator->name}";
+
+    // Cálculo de escala do Eixo Y
     $serviceLevel = $indicator->service_level;
-
     preg_match('/(<=|>=|<|>|==|!=)?\s*(\d+(\.\d+)?)%?/', $serviceLevel, $matches);
-
-    $serviceLevelOperator = $matches[1] ?? '';
     $serviceLevelNumber = isset($matches[2]) ? floatval($matches[2]) : null;
-
     $maxSeries = collect($seriesData)->pluck('y')->filter()->max();
     $maxY = max($maxSeries ?? 0, $serviceLevelNumber ?? 0);
-    $yAxisMax = round($maxY * 1.2, 2);
+    $yAxisMax = $maxY > 0 ? round($maxY * 1.2, 2) : 100;
 @endphp
 
-<div class="mb-2">
-    <div id="chart-{{ $indicator->id }}" style="height: 250px;"></div>
+<div class="mb-4">
+    <div id="chart-{{ $indicator->id }}" style="height: 280px;"></div>
 
     @push('scripts')
         <script>
             Highcharts.chart('chart-{{ $indicator->id }}', {
-                chart: {
-                    type: 'line'
-                },
-                title: {
-                    text: '{{ $indicator->code }} - {{ $indicator->name }} ({{ $indicator->service_level }})',
-                },
+                chart: { type: 'line' },
+                title: { text: '{{ $chartTitle }}' },
                 xAxis: {
                     categories: @json($labels),
-                    title: {
-                        text: 'Período'
-                    }
+                    title: { text: 'Período' }
                 },
                 yAxis: {
                     min: 0,
                     max: {{ $yAxisMax }},
-                    title: {
-                        text: 'Nível de Serviço (%)'
-                    },
+                    title: { text: '{{ $yAxisTitle }}' },
                     plotLines: [
-                        @if ($serviceLevelNumber !== null)
+                        @if (!$isInformativo && $serviceLevelNumber !== null)
                             {
                                 color: '#abb2b9',
                                 dashStyle: 'Dash',
                                 width: 2,
                                 value: {{ $serviceLevelNumber }},
-                                label: {
-                                    text: 'Meta: {{ $serviceLevelOperator }} {{ $serviceLevelNumber }}%',
-                                    align: 'right',
-                                    style: {
-                                        color: '#566573',
-                                        fontWeight: 'bold'
-                                    }
-                                },
+                                label: { text: 'Meta: {{ $serviceLevel }}', align: 'right' },
                                 zIndex: 20
                             }
                         @endif
@@ -100,38 +98,23 @@ $labels = $lastSixMonths
                 tooltip: {
                     formatter: function() {
                         return this.point.y !== null ?
-                            `<b>{{ $indicator->code }}</b><br/>
-                             Valor: ${this.point.y}%<br/>
-                             Status: ${this.point.status}` :
-                            `<b>{{ $indicator->code }}</b><br/>Período: ${this.x}<br/>Sem dados`;
+                            `<b>${this.series.name}</b><br/>Valor: ${this.point.y}{{ $unit }}<br/>Status: ${this.point.status}` :
+                            `<b>${this.series.name}</b><br/>Sem dados`;
                     }
                 },
                 series: [{
-                    name: '{{ $indicator->code }}',
+                    name: '{{ $isN1 ? "Soma N1 + N2" : $indicator->code }}',
                     data: @json($seriesData),
-                    color: '#007bff',
+                    color: '{{ $isN1 ? "#6f42c1" : "#007bff" }}',
                     connectNulls: true,
-                    marker: {
-                        enabled: true,
-                        radius: 4
-                    },
                     dataLabels: {
                         enabled: true,
                         formatter: function() {
-                            return this.y !== null ? `${this.y.toFixed(2)}%` : '';
-                        },
-                        style: {
-                            fontWeight: 'bold',
-                            color: '#000000',
-                            textOutline: 'none'
-                        },
-                        verticalAlign: 'bottom',
-                        y: -5
+                            return this.y !== null ? `${this.y}{{ $unit }}` : '';
+                        }
                     }
                 }],
-                credits: {
-                    enabled: false
-                }
+                credits: { enabled: false }
             });
         </script>
     @endpush

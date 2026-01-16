@@ -28,6 +28,8 @@ class IndicatorCalculatorService
             16 => 'imsr',
             17 => 'iprm',
             18 => 'iaeap',
+            19 => 'atend_n1',
+            20 => 'atend_n2',
         ];
     }
 
@@ -60,6 +62,8 @@ class IndicatorCalculatorService
             'imsr' => fn() => $dados['qtsr'] > 0 ? round((($dados['qtsr'] - (($dados['qtf'] * 1.5) + $dados['qted'])) / $dados['qtsr']) * 100, 2) : 0,
             'iprm' => fn() => $dados['qtr'] > 0 ? round(($dados['qtpr'] / $dados['qtr']) * 100, 2) : 0,
             'iaeap' => fn() => $dados['qtos'] > 0 ? round(($dados['qtaap'] / $dados['qtos']) * 100, 2) : 0,
+            'atend_n1' => fn() => $dados['valor'] ?? 0,
+            'atend_n2' => fn() => $dados['valor'] ?? 0,
         ];
 
         return $calculations[$indicatorKey]() ?? 0;
@@ -74,14 +78,14 @@ class IndicatorCalculatorService
         $dados = [];
 
         foreach ($indicators as $indicator) {
-            $inputs = $indicator->inputs ?? [];
+            $inputs = is_string($indicator->inputs) 
+                ? json_decode($indicator->inputs, true) 
+                : ($indicator->inputs ?? []);
 
             foreach ($inputs as $key => $value) {
                 if (!isset($dados[$key])) {
                     $dados[$key] = 0;
                 }
-
-                // Se for numérico, soma; se null ou inválido, ignora
                 $dados[$key] += is_numeric($value) ? floatval($value) : 0;
             }
         }

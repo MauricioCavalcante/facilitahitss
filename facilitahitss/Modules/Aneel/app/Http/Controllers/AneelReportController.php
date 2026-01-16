@@ -209,42 +209,47 @@ class AneelReportController extends Controller
 
                 if ($todosPreenchidos) {
                     $calcResult = IndicatorCalculatorService::calculate($indicatorId, $dados);
-
                     $serviceLevel = $indicators[$indicatorId]->service_level;
-                    preg_match('/(<=|>=|<|>|==|!=|=)?\s*([\d.,]+)%?/', $serviceLevel, $matches);
 
-                    if ($matches && count($matches) >= 3) {
-                        [$all, $operator, $targetValue] = $matches;
-                        $targetValue = floatval(str_replace(',', '.', $targetValue));
+                    if (trim($serviceLevel) === 'Informativo') {
+                        $status = 'Calculado';
+                    } else {
 
-                        if (!$operator || $operator === '=') {
-                            $operator = '==';
+                        preg_match('/(<=|>=|<|>|==|!=|=)?\s*([\d.,]+)%?/', $serviceLevel, $matches);
+
+                        if ($matches && count($matches) >= 3) {
+                            [$all, $operator, $targetValue] = $matches;
+                            $targetValue = floatval(str_replace(',', '.', $targetValue));
+
+                            if (!$operator || $operator === '=') {
+                                $operator = '==';
+                            }
+
+                            switch ($operator) {
+                                case '<=':
+                                    $atingiu = $calcResult <= $targetValue;
+                                    break;
+                                case '>=':
+                                    $atingiu = $calcResult >= $targetValue;
+                                    break;
+                                case '<':
+                                    $atingiu = $calcResult < $targetValue;
+                                    break;
+                                case '>':
+                                    $atingiu = $calcResult > $targetValue;
+                                    break;
+                                case '==':
+                                    $atingiu = $calcResult == $targetValue;
+                                    break;
+                                case '!=':
+                                    $atingiu = $calcResult != $targetValue;
+                                    break;
+                                default:
+                                    $atingiu = false;
+                            }
+
+                            $status = $atingiu ? 'Atingiu' : 'Não Atingiu';
                         }
-
-                        switch ($operator) {
-                            case '<=':
-                                $atingiu = $calcResult <= $targetValue;
-                                break;
-                            case '>=':
-                                $atingiu = $calcResult >= $targetValue;
-                                break;
-                            case '<':
-                                $atingiu = $calcResult < $targetValue;
-                                break;
-                            case '>':
-                                $atingiu = $calcResult > $targetValue;
-                                break;
-                            case '==':
-                                $atingiu = $calcResult == $targetValue;
-                                break;
-                            case '!=':
-                                $atingiu = $calcResult != $targetValue;
-                                break;
-                            default:
-                                $atingiu = false;
-                        }
-
-                        $status = $atingiu ? 'Atingiu' : 'Não Atingiu';
                     }
                 }
 

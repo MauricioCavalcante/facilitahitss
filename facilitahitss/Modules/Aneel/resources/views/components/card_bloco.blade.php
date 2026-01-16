@@ -32,13 +32,11 @@
             @php
                 $label = $labels[$indicator->code] ?? $indicator->code;
 
-                // 1️⃣ Filtrar relatórios dentro do período
                 $relevant = collect($reports)
                     ->filter(fn($r) => Carbon::parse(
                         is_array($r) ? $r['report']->period_start : $r->period_start
                     )->between($start, $end));
 
-                // 2️⃣ Obter entries do report_indicators
                 $entries = $relevant->flatMap(function($r) use ($indicator) {
                     $list = is_array($r) ? $r['indicators'] : $r->indicators;
                     return collect($list)
@@ -50,18 +48,13 @@
                     'related_count' => $entries->count(),
                 ]);
 
-                // 3️⃣ Somar os campos do JSON inputs
                 $totals = [];
-
-                // Protege: já pode ser array ou string
                 $keys = is_string($indicator->inputs)
                     ? json_decode($indicator->inputs, true)
                     : $indicator->inputs;
-
                 $keys = is_array($keys) ? $keys : [];
 
                 foreach ($entries as $entry) {
-                    // também protege aqui
                     $data = is_string($entry->inputs)
                         ? json_decode($entry->inputs, true)
                         : $entry->inputs;
@@ -76,43 +69,56 @@
                     }
                 }
 
-                // 4️⃣ Calcular com o service
                 try {
-                    $value = !empty($totals)
-                        ? IndicatorCalculatorService::calculate($indicator->id, $totals)
-                        : null;
-
-                    Log::debug("✅ Valor calculado para {$indicator->code}: {$value}");
+                    $value = !empty($totals) ? IndicatorCalculatorService::calculate($indicator->id, $totals) : null;
                 } catch (\Throwable $e) {
                     $value = null;
-                    Log::error("❌ Erro ao calcular indicador {$indicator->code}: " . $e->getMessage());
                 }
 
-                // 5️⃣ Avaliar meta dinamicamente
-                preg_match('/(>=|<=|>|<|=)?\s*([\d.]+)/', $indicator->service_level, $m);
-                $op        = $m[1] ?? '>=';
-                $threshold = floatval($m[2] ?? 0);
-                $status    = 'Sem dados';
+
+                $status = 'Sem dados';
+                $serviceLevel = trim($indicator->service_level);
+                $isInformativo = (strcasecmp($serviceLevel, 'Informativo') === 0);
+
                 if (!is_null($value)) {
-                    $status = match($op) {
-                        '>=' => $value >= $threshold ? 'Atingiu' : 'Não atingiu',
-                        '<=' => $value <= $threshold ? 'Atingiu' : 'Não atingiu',
-                        '>'  => $value >  $threshold ? 'Atingiu' : 'Não atingiu',
-                        '<'  => $value <  $threshold ? 'Atingiu' : 'Não atingiu',
-                        '='  => $value == $threshold? 'Atingiu' : 'Não atingiu',
-                        default => 'Indefinido',
-                    };
+                    if ($isInformativo) {
+                        $status = 'Informativo';
+                    } else {
+                        preg_match('/(>=|<=|>|<|=)?\s*([\d.]+)/', $serviceLevel, $m);
+                        $op        = $m[1] ?? '>=';
+                        $threshold = floatval($m[2] ?? 0);
+                        
+                        $status = match($op) {
+                            '>=' => $value >= $threshold ? 'Atingiu' : 'Não atingiu',
+                            '<=' => $value <= $threshold ? 'Atingiu' : 'Não atingiu',
+                            '>'  => $value >  $threshold ? 'Atingiu' : 'Não atingiu',
+                            '<'  => $value <  $threshold ? 'Atingiu' : 'Não atingiu',
+                            '='  => $value == $threshold ? 'Atingiu' : 'Não atingiu',
+                            default => 'Indefinido',
+                        };
+                    }
                 }
             @endphp
 
             <div class="card shadow-sm border-0">
                 <div class="card-body">
-                    <h6 class="card-subtitle mb-1 text-muted">{{ $indicator->code }} – {{ $label }}</h6>
+                    <h6 class="card-subtitle mb-1 text-muted">{{ $indicator->code }}</h6>
                     @if (!is_null($value))
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted">Meta: {{ $indicator->service_level }}</span>
-                            <span class="fw-bold fs-5">{{ number_format($value, 2) }}%</span>
-                            <span>{{ $status === 'Atingiu' ? '✅' : '❌' }}</span>
+                            <span class="text-muted small">
+                                {{ $isInformativo ? 'Valor Acumulado' : 'Meta: ' . $indicator->service_level }}
+                            </span>
+
+                            <span class="fw-bold fs-5">
+                                {{ number_format($value, $isInformativo ? 0 : 2) }}{{ $isInformativo ? '' : '%' }}
+                            </span>
+
+                            <span>
+                                @if($status === 'Atingiu') ✅ 
+                                @elseif($status === 'Não atingiu') ❌ 
+                                @elseif($status === 'Informativo') 📊 
+                                @endif
+                            </span>
                         </div>
                     @else
                         <span class="text-muted">Sem dados</span>

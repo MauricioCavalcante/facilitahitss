@@ -19,7 +19,6 @@
             @php
                 $groupsToShow = ['Item 1: Central de Serviços', 'Item 2: Atendimento ao Usuário de 1º e 2º Níveis'];
 
-                // Se não houver filtro, reorganizamos os dados do $reports com map
                 $normalizedReports = $hasFilter
                     ? $reports
                     : collect($reports)->mapWithKeys(function ($item) {

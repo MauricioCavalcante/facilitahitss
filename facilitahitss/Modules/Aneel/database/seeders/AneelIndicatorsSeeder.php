@@ -41,7 +41,7 @@ class AneelIndicatorsSeeder extends Seeder
             ],
             [
                 'id' => 4,
-                'code' => 'ICRR',
+                'code' => 'ICIR',
                 'name' => 'Índice de Classificação Incorreta de Requisições',
                 'description' => 'Apura a quantidade de Requisições classificadas incorretamente.',
                 'service_level' => '<= 5%',
@@ -73,7 +73,7 @@ class AneelIndicatorsSeeder extends Seeder
             ],
             [
                 'id' => 8,
-                'code' => 'IRSAFM',
+                'code' => 'IRSAFPM',
                 'name' => 'Índice de Requisições de Serviço Atendidas Fora do Prazo Máximo',
                 'description' => 'Apura o nível de atendimento de Requisições Atendidas fora do prazo máximo.',
                 'service_level' => '<= 3%',
@@ -89,7 +89,7 @@ class AneelIndicatorsSeeder extends Seeder
             ],
             [
                 'id' => 10,
-                'code' => 'IAP',
+                'code' => 'IIAP',
                 'name' => 'Índice de Incidentes Atendidos no Prazo',
                 'description' => 'Apura o nível de atendimento dos Incidentes no prazo.',
                 'service_level' => '<= 3%',
@@ -97,7 +97,7 @@ class AneelIndicatorsSeeder extends Seeder
             ],
             [
                 'id' => 11,
-                'code' => 'IRAFPM',
+                'code' => 'IIAFPM',
                 'name' => 'Índice de Incidentes Atendidos Fora do Prazo Máximo',
                 'description' => 'Apura o nível de atendimento de Incidentes Atendidos fora do prazo máximo.',
                 'service_level' => '<= 3%',
@@ -105,7 +105,7 @@ class AneelIndicatorsSeeder extends Seeder
             ],
             [
                 'id' => 12,
-                'code' => 'IRR',
+                'code' => 'IRIR',
                 'name' => 'Índice de Reabertura de Incidentes e Requisições',
                 'description' => 'Apura o nível de reabertura de Incidentes e Requisições.',
                 'service_level' => '<= 5%',
@@ -159,9 +159,24 @@ class AneelIndicatorsSeeder extends Seeder
                 'service_level' => '>= 90%',
                 'inputs' => '["qtaap", "qttos"]'
             ],
+            [
+                'id' => 19,
+                'code' => 'ATEND_N1',
+                'name' => 'Atendimento ao Usuário de 1 nível',
+                'description' => 'Volume de atendimentos de 1 nível',
+                'service_level' => 'Informativo',
+                'inputs' => '["valor"]'
+            ],
+            [
+                'id' => 20,
+                'code' => 'ATEND_N2',
+                'name' => 'Atendimento ao Usuário de 2 nível',
+                'description' => 'Volume de atendimentos de 2 nível',
+                'service_level' => 'Informativo',
+                'inputs' => '["valor"]'
+            ],
         ];
 
-        // Insere os dados na tabela, ignorando duplicatas se já existirem (upsert)
         DB::table('aneel_indicators')->upsert($indicators, ['id', 'code']);
     }
 }

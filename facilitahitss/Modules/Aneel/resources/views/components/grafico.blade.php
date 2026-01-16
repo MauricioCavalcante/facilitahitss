@@ -10,5 +10,5 @@
             data: {!! json_encode($indicator->reports->pluck('value')) !!}
         }]
     });
-    </script>
+</script>
     

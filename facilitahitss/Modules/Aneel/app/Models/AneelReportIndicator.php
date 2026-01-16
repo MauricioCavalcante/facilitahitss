@@ -46,6 +46,10 @@ class AneelReportIndicator extends Model
 
     public static function checkIndicatorStatus($value, $serviceLevel)
     {
+        if (strcasecmp(trim($serviceLevel), 'Informativo') === 0) {
+            return 'Calculado';
+        }
+
         if (preg_match('/(<=|>=|<|>|=)\s*([\d,\.]+)%?/', $serviceLevel, $matches)) {
             $operator = $matches[1];
             $threshold = floatval(str_replace(',', '.', $matches[2]));
