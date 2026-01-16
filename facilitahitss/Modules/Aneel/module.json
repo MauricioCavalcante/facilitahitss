@@ -1,0 +1,11 @@
+{
+    "name": "Aneel",
+    "alias": "aneel",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Aneel\\Providers\\AneelServiceProvider"
+    ],
+    "files": []
+}

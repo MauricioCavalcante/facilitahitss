@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/aneel",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Aneel\\": "app/",
+            "Modules\\Aneel\\Database\\Factories\\": "database/factories/",
+            "Modules\\Aneel\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Aneel\\Tests\\": "tests/"
+        }
+    }
+}

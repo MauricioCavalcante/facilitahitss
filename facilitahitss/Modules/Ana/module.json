@@ -1,0 +1,11 @@
+{
+    "name": "Ana",
+    "alias": "ana",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Ana\\Providers\\AnaServiceProvider"
+    ],
+    "files": []
+}

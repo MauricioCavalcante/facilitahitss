@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/ana",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Ana\\": "app/",
+            "Modules\\Ana\\Database\\Factories\\": "database/factories/",
+            "Modules\\Ana\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Ana\\Tests\\": "tests/"
+        }
+    }
+}
