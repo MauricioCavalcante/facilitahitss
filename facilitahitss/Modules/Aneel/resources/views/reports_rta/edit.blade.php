@@ -152,32 +152,46 @@
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        @foreach ($reportIndicators as $reportIndicator)
+                        @php
+                            $allIndicatorsMaster = \Modules\Aneel\Models\AneelIndicator::orderBy('id')->get();
+                            $existingIndicators = $reportIndicators->keyBy('indicator_id');
+                        @endphp
+                        @foreach ($allIndicatorsMaster as $indicator)
                             @php
-                                $indicator = $reportIndicator->indicator;
-                                $inputs = is_string($reportIndicator->inputs)
-                                    ? json_decode($reportIndicator->inputs, true)
-                                    : $reportIndicator->inputs;
+                                $reportIndicator = $existingIndicators->get($indicator->id);
+                                
+                                $savedInputs = [];
+                                if ($reportIndicator) {
+                                    $savedInputs = is_string($reportIndicator->inputs) 
+                                        ? json_decode($reportIndicator->inputs, true) 
+                                        : $reportIndicator->inputs;
+                                }
+
+                                $inputSchema = is_string($indicator->inputs) 
+                                    ? json_decode($indicator->inputs, true) 
+                                    : $indicator->inputs;
+
                                 $requiresFile = in_array($indicator->id, [1, 3, 4, 7, 9, 10]);
                             @endphp
 
                             <div class="col-lg-4 col-md-6 mb-4">
-                                <div class="card shadow-sm">
-                                    <div class="card-header bg-secondary text-white">
-                                        <h6 class="mb-0">{{ $indicator->id }} - {{ $indicator->name }}
-                                            ({{ $indicator->code }})
-                                        </h6>
+                                <div class="card shadow-sm {{ !$reportIndicator ? 'border-warning' : '' }}">
+                                    <div class="card-header {{ !$reportIndicator ? 'bg-warning text-dark' : 'bg-secondary text-white' }} d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">{{ $indicator->id }} - {{ $indicator->name }} ({{ $indicator->code }})</h6>
+                                        @if(!$reportIndicator) 
+                                            <span class="badge bg-light text-dark" title="Este indicador ainda não possui dados neste relatório">Novo</span> 
+                                        @endif
                                     </div>
                                     <div class="card-body">
-                                        <span class="text-muted">{{ $indicator->description }}</span>
-                                        @if (!empty($inputs))
-                                            @foreach ($inputs as $key => $value)
+                                        <span class="text-muted small">{{ $indicator->description }}</span>
+                                        
+                                        @if (!empty($inputSchema))
+                                            @foreach ($inputSchema as $key)
                                                 <div class="my-3">
-                                                    <label
-                                                        class="form-label">{{ strtoupper(str_replace('_', ' ', $key)) }}</label>
+                                                    <label class="form-label">{{ strtoupper(str_replace('_', ' ', $key)) }}</label>
                                                     <input type="number" step="any" class="form-control"
                                                         name="inputs[{{ $indicator->id }}][{{ $key }}]"
-                                                        value="{{ old("inputs.$indicator->id.$key", $value) }}">
+                                                        value="{{ old("inputs.$indicator->id.$key", $savedInputs[$key] ?? '') }}">
                                                 </div>
                                             @endforeach
                                         @else
@@ -187,23 +201,16 @@
                                         @if ($requiresFile)
                                             <div class="mt-3">
                                                 <div id="file-container-{{ $indicator->id }}">
-                                                    @if ($reportIndicator->name_attachment)
-                                                        <div class="mb-2">
-                                                            Anexo atual:
-                                                            <strong>{{ $reportIndicator->name_attachment }}</strong>
+                                                    @if ($reportIndicator && $reportIndicator->name_attachment)
+                                                        <div class="mb-2 small">
+                                                            Anexo atual: <strong>{{ $reportIndicator->name_attachment }}</strong>
                                                         </div>
                                                     @endif
-
-                                                    <label for="file_{{ $indicator->id }}"
-                                                        class="form-label mt-2">Substituir Anexo (opcional):</label>
-                                                    <input type="file" class="form-control"
-                                                        name="files[{{ $indicator->id }}]"
-                                                        id="file_{{ $indicator->id }}">
+                                                    <label for="file_{{ $indicator->id }}" class="form-label mt-2">Substituir/Anexar Arquivo:</label>
+                                                    <input type="file" class="form-control" name="files[{{ $indicator->id }}]" id="file_{{ $indicator->id }}">
                                                 </div>
                                             </div>
                                         @endif
-
-
                                     </div>
                                 </div>
                             </div>
