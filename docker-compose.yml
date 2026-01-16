@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  facilita-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: facilita-app
+    restart: unless-stopped
+    
+    volumes:
+      - ./facilitahitss:/var/www/html 
+    ports:
+      - "8001:80"
+
+    networks:
+      - facilita-network
+
+networks:
+  facilita-network:
+    driver: bridge
