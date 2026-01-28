@@ -50,7 +50,7 @@
                         {{ Auth::user()->name }}
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                        <li><a class="dropdown-item" href="{{ route('ana::profile.index', ['id' => Auth::user()->id]) }}">Editar Perfil</a></li>
+                        <!-- <li><a class="dropdown-item" href="{{ route('ana::profile.index', ['id' => Auth::user()->id]) }}">Editar Perfil</a></li> -->
 
                         @if (Auth::user()->role == 'admin')
                             <li><a class="dropdown-item" href="{{ route('ana::usuarios.painel') }}">Gerenciar

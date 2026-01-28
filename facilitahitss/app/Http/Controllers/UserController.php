@@ -29,7 +29,7 @@ class UserController extends Controller
     }
 
     public function store(Request $request)
-{
+    {
 
     $request->validate([
         'name' => 'required|string|max:255',
@@ -65,12 +65,14 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'role' => 'required|in:admin,editor,user',
+            'is_active' => 'required|boolean',
             'modules' => 'nullable|array',
         ]);
     
         $user->name = $request->input('name');
         $user->email = $request->input('email');
         $user->role = $request->input('role');
+        $user->is_active = $request->input('is_active');
 
         $user->username = explode('@', $request->email)[0];
     

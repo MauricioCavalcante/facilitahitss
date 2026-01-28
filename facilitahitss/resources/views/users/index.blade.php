@@ -31,6 +31,7 @@
                         <th>Email</th>
                         <th>Username</th>
                         <th>Perfil</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -40,6 +41,7 @@
                             <td>{{ $user->email }}</td>
                             <td>{{ $user->username }}</td>
                             <td>{{ $user->role }}</td>
+                            <td>{{ $user->is_active ? 'Ativo' : 'Desativado' }}</td>
                         </tr>
                     @endforeach
                 </tbody>

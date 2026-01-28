@@ -27,7 +27,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email_or_username' => ['required', 'string'], // Remover a validação 'email'
+            'email_or_username' => ['required', 'string'],
             'password' => ['required', 'string'],
         ];
     }
@@ -49,6 +49,17 @@ class LoginRequest extends FormRequest
 
             throw ValidationException::withMessages([
                 'email_or_username' => trans('auth.failed'),
+            ]);
+        }
+
+        $user = Auth::user();
+
+        if (!$user->is_active) {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email_or_username' => 'Sua conta está desativada. Por favor, entre em contato com o seu gestor.',
             ]);
         }
 

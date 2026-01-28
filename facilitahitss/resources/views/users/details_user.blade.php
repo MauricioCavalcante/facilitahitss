@@ -22,6 +22,7 @@
             <p>E-mail: {{ $user->email }}</p>
             <p>Nome de usuário: {{ $user->username }}</p>
             <p>Perfil: {{ $user->role }}</p>
+            <p>Status: {{ $user->is_active ? 'Ativo' : 'Inativo' }}</p>
             <p><strong>Módulos autorizados:</strong></p>
             <ul>
                 @foreach ($user->modules as $module)
